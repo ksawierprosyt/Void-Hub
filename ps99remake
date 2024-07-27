@@ -29,7 +29,6 @@ if httprequest then
     )
 end
 
-    local Window = Libr
 
 local Window = Library:MakeWindow({"Void Hub | Spawn World"})
 
