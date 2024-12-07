@@ -45,17 +45,6 @@ local Window = Rayfield:CreateWindow({
         -- The variable (Value) is a boolean on whether the toggle is true or false
         
         if Value then
-            -- Run this code when the toggle is turned on
-            local RunService = game:GetService("RunService")
-            local ToggleConnection
-            
-            ToggleConnection = RunService.Heartbeat:Connect(function()
-                if not Tab.Flags["Toggle1"] then
-                    -- Stop the loop if toggle is turned off
-                    ToggleConnection:Disconnect()
-                    return
-                end
-                
                 -- Fire the first RemoteEvent
                 local args1 = {
                     [1] = "FlowerGarden",
