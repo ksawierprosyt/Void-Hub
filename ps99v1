@@ -173,20 +173,28 @@ local function openLargeGift()
     game:GetService("ReplicatedStorage").Network.GiftBag_Open:InvokeServer(unpack(args))
 end
 
+-- Variables to control the auto gift process
+local autoSmallGiftRunning = false
+local autoLargeGiftRunning = false
+
 -- Create the Auto Small Gifts toggle
 local smallGiftToggle = Tab:CreateToggle({
     Name = "Auto Small Gifts",
     CurrentValue = false,  -- Default value (false means it's off)
     Flag = "AutoSmallGiftToggle",  -- Unique flag for saving configuration
     Callback = function(value)
-        -- When the toggle is pressed, check if it's enabled
         if value then
-            -- Start firing small gifts automatically
-            -- Example: fire the remote every 2 seconds for demonstration
-            while smallGiftToggle:GetValue() do
-                openSmallGift()
-                wait(2)  -- Adjust the wait time as needed
-            end
+            -- Start the auto small gift process
+            autoSmallGiftRunning = true
+            task.spawn(function()
+                while autoSmallGiftRunning do
+                    openSmallGift()
+                    wait(2)  -- Adjust the wait time as needed
+                end
+            end)
+        else
+            -- Stop the auto small gift process
+            autoSmallGiftRunning = false
         end
     end,
 })
@@ -197,14 +205,18 @@ local largeGiftToggle = Tab:CreateToggle({
     CurrentValue = false,  -- Default value (false means it's off)
     Flag = "AutoLargeGiftToggle",  -- Unique flag for saving configuration
     Callback = function(value)
-        -- When the toggle is pressed, check if it's enabled
         if value then
-            -- Start firing large gifts automatically
-            -- Example: fire the remote every 5 seconds for demonstration
-            while largeGiftToggle:GetValue() do
-                openLargeGift()
-                wait(5)  -- Adjust the wait time as needed
-            end
+            -- Start the auto large gift process
+            autoLargeGiftRunning = true
+            task.spawn(function()
+                while autoLargeGiftRunning do
+                    openLargeGift()
+                    wait(5)  -- Adjust the wait time as needed
+                end
+            end)
+        else
+            -- Stop the auto large gift process
+            autoLargeGiftRunning = false
         end
     end,
 })
