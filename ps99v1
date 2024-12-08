@@ -1,10 +1,10 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-    Name = "Rayfield Example Window",
+    Name = "[Void Hub] Pet Simulator 99",
     Icon = 0, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
-    LoadingTitle = "Rayfield Interface Suite",
-    LoadingSubtitle = "by Sirius",
+    LoadingTitle = "[Void Hub] Pet Simulator 99",
+    LoadingSubtitle = "by Void Hub",
     Theme = "Default", -- Check https://docs.sirius.menu/rayfield/configuration/themes
 
     DisableRayfieldPrompts = false,
@@ -34,7 +34,7 @@ local Window = Rayfield:CreateWindow({
     }
 })
 
-local Tab = Window:CreateTab("Tab Example", 4483362458)
+local Tab = Window:CreateTab("Main", 4483362458)
 
 -- Variables to control the automation
 local autoPlantRunning = false
@@ -152,3 +152,60 @@ local LootbagsToggle = Tab:CreateToggle({
         end
     end,
 })
+
+-- Function to trigger the remote for small gifts
+local function openSmallGift()
+    local args = {
+        [1] = "Gift Bag",
+        [2] = 1
+    }
+
+    game:GetService("ReplicatedStorage").Network.GiftBag_Open:InvokeServer(unpack(args))
+end
+
+-- Function to trigger the remote for large gifts
+local function openLargeGift()
+    local args = {
+        [1] = "Large Gift Bag",
+        [2] = 1
+    }
+
+    game:GetService("ReplicatedStorage").Network.GiftBag_Open:InvokeServer(unpack(args))
+end
+
+-- Create the Auto Small Gifts toggle
+local smallGiftToggle = Tab:CreateToggle({
+    Name = "Auto Small Gifts",
+    CurrentValue = false,  -- Default value (false means it's off)
+    Flag = "AutoSmallGiftToggle",  -- Unique flag for saving configuration
+    Callback = function(value)
+        -- When the toggle is pressed, check if it's enabled
+        if value then
+            -- Start firing small gifts automatically
+            -- Example: fire the remote every 2 seconds for demonstration
+            while smallGiftToggle:GetValue() do
+                openSmallGift()
+                wait(2)  -- Adjust the wait time as needed
+            end
+        end
+    end,
+})
+
+-- Create the Auto Large Gifts toggle
+local largeGiftToggle = Tab:CreateToggle({
+    Name = "Auto Large Gifts",
+    CurrentValue = false,  -- Default value (false means it's off)
+    Flag = "AutoLargeGiftToggle",  -- Unique flag for saving configuration
+    Callback = function(value)
+        -- When the toggle is pressed, check if it's enabled
+        if value then
+            -- Start firing large gifts automatically
+            -- Example: fire the remote every 5 seconds for demonstration
+            while largeGiftToggle:GetValue() do
+                openLargeGift()
+                wait(5)  -- Adjust the wait time as needed
+            end
+        end
+    end,
+})
+
