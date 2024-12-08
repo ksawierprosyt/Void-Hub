@@ -97,7 +97,7 @@ local Window = Rayfield:CreateWindow({
  end
 
 -- Auto Collect Gem Orbs Toggle
-local OrbsToggle = MainTab:CreateToggle({
+local OrbsToggle = Tab:CreateToggle({
     Name = "Auto Collect Gem Orbs!",
     Info = "Automatically collects all the Gem Orbs nearby.",
     CurrentValue = false,
@@ -119,7 +119,7 @@ local OrbsToggle = MainTab:CreateToggle({
  })
  
  -- Auto Collect Lootbags Toggle
- local LootbagsToggle = MainTab:CreateToggle({
+ local LootbagsToggle = Tab:CreateToggle({
     Name = "Auto Collect Lootbags!",
     Info = "Automatically collects all the Lootbags nearby.",
     CurrentValue = false,
