@@ -96,48 +96,52 @@ local Window = Rayfield:CreateWindow({
      autoPlantRunning = false
  end
 
-local Toggle = Tab:CreateToggle({
+ local Toggle = Tab:CreateToggle({
     Name = "Teleport and Hide Parts",
     CurrentValue = false,
     Flag = "TeleportToggle",
     Callback = function(Value)
-        if Value then
-            -- Run this code when the toggle is turned on
-            local RunService = game:GetService("RunService")
-            local Player = game.Players.LocalPlayer
-            local Character = Player.Character or Player.CharacterAdded:Wait()
-            local RootPart = Character:FindFirstChild("HumanoidRootPart")
-            local ToggleConnection
+        local Player = game.Players.LocalPlayer
+        local Character = Player.Character or Player.CharacterAdded:Wait()
+        local RootPart = Character:FindFirstChild("HumanoidRootPart")
+        local ToggleConnection
 
-            ToggleConnection = RunService.Heartbeat:Connect(function()
-                if not Tab.Flags["TeleportToggle"] or not RootPart then
-                    -- Stop the loop if toggle is turned off or player doesn't have a root part
-                    ToggleConnection:Disconnect()
-                    return
-                end
-                
-                local folders = {
-                    game.Workspace["__THINGS"].Orbs,
-                    game.Workspace["__THINGS"].Lootbags
-                }
-                
-                for _, folder in ipairs(folders) do
-                    for _, obj in ipairs(folder:GetDescendants()) do
-                        if obj:IsA("Part") or obj:IsA("MeshPart") then
-                            -- Teleport to player's HumanoidRootPart position
-                            obj.CFrame = RootPart.CFrame
-                            obj.Transparency = 1 -- Make it invisible
-                        elseif obj:IsA("Model") then
-                            -- Teleport models but leave their visibility intact
-                            local PrimaryPart = obj.PrimaryPart or obj:FindFirstChildOfClass("Part")
-                            if PrimaryPart then
-                                obj:SetPrimaryPartCFrame(RootPart.CFrame)
+        if Value then
+            -- Use a task to run the process without waiting on heartbeat
+            ToggleConnection = task.spawn(function()
+                while Tab.Flags["TeleportToggle"] and RootPart do
+                    -- Cache folders and objects for faster processing
+                    local folders = {
+                        game.Workspace:FindFirstChild("__THINGS") and game.Workspace["__THINGS"]:FindFirstChild("Orbs"),
+                        game.Workspace:FindFirstChild("__THINGS") and game.Workspace["__THINGS"]:FindFirstChild("Lootbags"),
+                    }
+
+                    -- Iterate over folders only if they exist
+                    for _, folder in ipairs(folders) do
+                        if folder then
+                            for _, obj in ipairs(folder:GetChildren()) do
+                                -- Teleport and hide parts faster by reducing unnecessary checks
+                                if obj:IsA("Part") or obj:IsA("MeshPart") then
+                                    obj.CFrame = RootPart.CFrame -- Teleport part
+                                    obj.Transparency = 1 -- Hide part
+                                elseif obj:IsA("Model") then
+                                    -- Teleport models (only move their PrimaryPart)
+                                    local PrimaryPart = obj.PrimaryPart or obj:FindFirstChildOfClass("Part")
+                                    if PrimaryPart then
+                                        obj:SetPrimaryPartCFrame(RootPart.CFrame)
+                                    end
+                                end
                             end
                         end
                     end
+                    wait(0.1) -- Wait 0.1 seconds before repeating
                 end
             end)
+        else
+            -- Disconnect the loop if the toggle is off
+            if ToggleConnection then
+                ToggleConnection:Disconnect()
+            end
         end
     end,
 })
-
