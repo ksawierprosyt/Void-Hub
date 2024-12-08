@@ -96,52 +96,47 @@ local Window = Rayfield:CreateWindow({
      autoPlantRunning = false
  end
 
- local Toggle = Tab:CreateToggle({
-    Name = "Teleport and Hide Parts",
+-- Auto Collect Gem Orbs Toggle
+local OrbsToggle = MainTab:CreateToggle({
+    Name = "Auto Collect Gem Orbs!",
+    Info = "Automatically collects all the Gem Orbs nearby.",
     CurrentValue = false,
-    Flag = "TeleportToggle",
-    Callback = function(Value)
-        local Player = game.Players.LocalPlayer
-        local Character = Player.Character or Player.CharacterAdded:Wait()
-        local RootPart = Character:FindFirstChild("HumanoidRootPart")
-        local ToggleConnection
-
-        if Value then
-            -- Use a task to run the process without waiting on heartbeat
-            ToggleConnection = task.spawn(function()
-                while Tab.Flags["TeleportToggle"] and RootPart do
-                    -- Cache folders and objects for faster processing
-                    local folders = {
-                        game.Workspace:FindFirstChild("__THINGS") and game.Workspace["__THINGS"]:FindFirstChild("Orbs"),
-                        game.Workspace:FindFirstChild("__THINGS") and game.Workspace["__THINGS"]:FindFirstChild("Lootbags"),
-                    }
-
-                    -- Iterate over folders only if they exist
-                    for _, folder in ipairs(folders) do
-                        if folder then
-                            for _, obj in ipairs(folder:GetChildren()) do
-                                -- Teleport and hide parts faster by reducing unnecessary checks
-                                if obj:IsA("Part") or obj:IsA("MeshPart") then
-                                    obj.CFrame = RootPart.CFrame -- Teleport part
-                                    obj.Transparency = 1 -- Hide part
-                                elseif obj:IsA("Model") then
-                                    -- Teleport models (only move their PrimaryPart)
-                                    local PrimaryPart = obj.PrimaryPart or obj:FindFirstChildOfClass("Part")
-                                    if PrimaryPart then
-                                        obj:SetPrimaryPartCFrame(RootPart.CFrame)
-                                    end
-                                end
-                            end
-                        end
-                    end
-                    wait(0.1) -- Wait 0.1 seconds before repeating
+    Flag = "COINS", -- Unique flag identifier for saving
+    Callback = function(State)
+        _G.autoCollectOrbs = State
+        
+        -- Start collecting Orbs when the toggle is on
+        while _G.autoCollectOrbs do
+            for _, orb in pairs(workspace.THINGS__.Orbs:GetDescendants()) do
+                if orb:IsA("MeshPart") then
+                    -- Teleport orb to the player's HumanoidRootPart position
+                    orb.CFrame = CFrame.new(game:GetService("Players").LocalPlayer.Character.HumanoidRootPart.Position)
                 end
-            end)
-        else
-            -- Disconnect the loop if the toggle is off
-            if ToggleConnection then
-                ToggleConnection:Disconnect()
             end
+            task.wait(0.05) -- Speed up the collection process by reducing wait time
         end
     end,
-})
+ })
+ 
+ -- Auto Collect Lootbags Toggle
+ local LootbagsToggle = MainTab:CreateToggle({
+    Name = "Auto Collect Lootbags!",
+    Info = "Automatically collects all the Lootbags nearby.",
+    CurrentValue = false,
+    Flag = "LOOTBAGS", -- Unique flag identifier for saving
+    Callback = function(State)
+        _G.autoCollectLootbags = State
+        
+        -- Start collecting Lootbags when the toggle is on
+        while _G.autoCollectLootbags do
+            for _, lootbag in pairs(workspace.THINGS__.Lootbags:GetDescendants()) do
+                if lootbag:IsA("MeshPart") then
+                    -- Teleport lootbag to the player's HumanoidRootPart position
+                    lootbag.CFrame = CFrame.new(game:GetService("Players").LocalPlayer.Character.HumanoidRootPart.Position)
+                end
+            end
+            task.wait(0.05) -- Speed up the collection process by reducing wait time
+        end
+    end,
+ })
+ 
