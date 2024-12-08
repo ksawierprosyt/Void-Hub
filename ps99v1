@@ -51,6 +51,8 @@ local Window = Rayfield:CreateWindow({
  
  -- Variables to control the automation
  local autoPlantRunning = false
+ local autoCollectOrbsRunning = false
+ local autoCollectLootbagsRunning = false
  
  -- Function to start the auto-plant process
  function startAutoPlant()
@@ -99,44 +101,53 @@ local Window = Rayfield:CreateWindow({
 -- Auto Collect Gem Orbs Toggle
 local OrbsToggle = Tab:CreateToggle({
     Name = "Auto Collect Gem Orbs!",
-    Info = "Automatically collects all the Gem Orbs nearby.",
     CurrentValue = false,
-    Flag = "COINS", -- Unique flag identifier for saving
+    Flag = "ORBS", -- Unique flag identifier for saving
     Callback = function(State)
-        _G.autoCollectOrbs = State
-        
-        -- Start collecting Orbs when the toggle is on
-        while _G.autoCollectOrbs do
-            for _, orb in pairs(workspace.THINGS__.Orbs:GetDescendants()) do
-                if orb:IsA("MeshPart") then
-                    -- Teleport orb to the player's HumanoidRootPart position
-                    orb.CFrame = CFrame.new(game:GetService("Players").LocalPlayer.Character.HumanoidRootPart.Position)
+        if State then
+            -- Start the collection of orbs in a separate thread
+            autoCollectOrbsRunning = true
+            task.spawn(function()
+                while autoCollectOrbsRunning do
+                    for _, orb in pairs(workspace.THINGS__.Orbs:GetDescendants()) do
+                        if orb:IsA("MeshPart") then
+                            -- Teleport orb to the player's HumanoidRootPart position
+                            orb.CFrame = CFrame.new(game:GetService("Players").LocalPlayer.Character.HumanoidRootPart.Position)
+                        end
+                    end
+                    task.wait(0.05) -- Speed up the collection process by reducing wait time
                 end
-            end
-            task.wait(0.05) -- Speed up the collection process by reducing wait time
+            end)
+        else
+            -- Stop the collection of orbs
+            autoCollectOrbsRunning = false
         end
     end,
- })
- 
- -- Auto Collect Lootbags Toggle
- local LootbagsToggle = Tab:CreateToggle({
+})
+
+-- Auto Collect Lootbags Toggle
+local LootbagsToggle = Tab:CreateToggle({
     Name = "Auto Collect Lootbags!",
-    Info = "Automatically collects all the Lootbags nearby.",
     CurrentValue = false,
     Flag = "LOOTBAGS", -- Unique flag identifier for saving
     Callback = function(State)
-        _G.autoCollectLootbags = State
-        
-        -- Start collecting Lootbags when the toggle is on
-        while _G.autoCollectLootbags do
-            for _, lootbag in pairs(workspace.THINGS__.Lootbags:GetDescendants()) do
-                if lootbag:IsA("MeshPart") then
-                    -- Teleport lootbag to the player's HumanoidRootPart position
-                    lootbag.CFrame = CFrame.new(game:GetService("Players").LocalPlayer.Character.HumanoidRootPart.Position)
+        if State then
+            -- Start the collection of lootbags in a separate thread
+            autoCollectLootbagsRunning = true
+            task.spawn(function()
+                while autoCollectLootbagsRunning do
+                    for _, lootbag in pairs(workspace.THINGS__.Lootbags:GetDescendants()) do
+                        if lootbag:IsA("MeshPart") then
+                            -- Teleport lootbag to the player's HumanoidRootPart position
+                            lootbag.CFrame = CFrame.new(game:GetService("Players").LocalPlayer.Character.HumanoidRootPart.Position)
+                        end
+                    end
+                    task.wait(0.05) -- Speed up the collection process by reducing wait time
                 end
-            end
-            task.wait(0.05) -- Speed up the collection process by reducing wait time
+            end)
+        else
+            -- Stop the collection of lootbags
+            autoCollectLootbagsRunning = false
         end
     end,
- })
- 
+})
