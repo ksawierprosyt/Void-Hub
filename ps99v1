@@ -37,42 +37,64 @@ local Window = Rayfield:CreateWindow({
  local Tab = Window:CreateTab("Tab Example", 4483362458)
 
  local Toggle = Tab:CreateToggle({
-    Name = "Toggle Example",
+    Name = "Auto Plant Toggle",
     CurrentValue = false,
-    Flag = "Toggle1",
+    Flag = "AutoPlantToggle",
     Callback = function(Value)
-        -- The function that takes place when the toggle is pressed
-        -- The variable (Value) is a boolean on whether the toggle is true or false
-        
         if Value then
-                -- Fire the first RemoteEvent
-                local args1 = {
-                    [1] = "FlowerGarden",
-                    [2] = "PlantSeed",
-                    [3] = 5,
-                    [4] = "Diamond"
-                }
-                game:GetService("ReplicatedStorage").Network.Instancing_InvokeCustomFromClient:InvokeServer(unpack(args1))
-                wait(1)
-                -- Fire the second RemoteEvent
-                local args2 = {
-                    [1] = "FlowerGarden",
-                    [2] = "InstaGrowSeed",
-                    [3] = 5
-                }
-                game:GetService("ReplicatedStorage").Network.Instancing_InvokeCustomFromClient:InvokeServer(unpack(args2))
-                wait(1)
-                -- Fire the third RemoteEvent
-                local args3 = {
-                    [1] = "FlowerGarden",
-                    [2] = "ClaimPlant",
-                    [3] = 5
-                }
-                game:GetService("ReplicatedStorage").Network.Instancing_FireCustomFromClient:FireServer(unpack(args3))
-            end)
+            startAutoPlant()
+        else
+            stopAutoPlant()
         end
     end,
-})
+ })
+ 
+ -- Variables to control the automation
+ local autoPlantRunning = false
+ 
+ -- Function to start the auto-plant process
+ function startAutoPlant()
+     autoPlantRunning = true
+     task.spawn(function()
+         while autoPlantRunning do
+             -- Fire the first remote event
+             local args = {
+                [1] = "FlowerGarden",
+                [2] = "PlantSeed",
+                [3] = 5,
+                [4] = "Diamond"
+            }
+            
+            game:GetService("ReplicatedStorage").Network.Instancing_InvokeCustomFromClient:InvokeServer(unpack(args))
+             wait(0.2) -- Wait 1 second
+ 
+             -- Fire the second remote event
+             local args = {
+                [1] = "FlowerGarden",
+                [2] = "InstaGrowSeed",
+                [3] = 5
+            }
+            
+            game:GetService("ReplicatedStorage").Network.Instancing_InvokeCustomFromClient:InvokeServer(unpack(args))
+             wait(0.2) -- Wait 1 second
+ 
+             -- Fire the third remote event
+             local args = {
+                [1] = "FlowerGarden",
+                [2] = "ClaimPlant",
+                [3] = 5
+            }
+            
+            game:GetService("ReplicatedStorage").Network.Instancing_FireCustomFromClient:FireServer(unpack(args))
+             wait(0.2) -- Wait 1 second
+         end
+     end)
+ end
+ 
+ -- Function to stop the auto-plant process
+ function stopAutoPlant()
+     autoPlantRunning = false
+ end
 
 local Toggle = Tab:CreateToggle({
     Name = "Teleport and Hide Parts",
@@ -118,3 +140,4 @@ local Toggle = Tab:CreateToggle({
         end
     end,
 })
+
