@@ -1,225 +1,189 @@
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
-
-local Window = Rayfield:CreateWindow({
-    Name = "[Void Hub] Pet Simulator 99",
-    Icon = 0, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
-    LoadingTitle = "[Void Hub] Pet Simulator 99",
-    LoadingSubtitle = "by Void Hub",
-    Theme = "Default", -- Check https://docs.sirius.menu/rayfield/configuration/themes
-
-    DisableRayfieldPrompts = false,
-    DisableBuildWarnings = false, -- Prevents Rayfield from warning when the script has a version mismatch with the interface
-
-    ConfigurationSaving = {
-        Enabled = true,
-        FolderName = nil, -- Create a custom folder for your hub/game
-        FileName = "Big Hub"
-    },
-
-    Discord = {
-        Enabled = false, -- Prompt the user to join your Discord server if their executor supports it
-        Invite = "noinvitelink", -- The Discord invite code, do not include discord.gg/. E.g. discord.gg/ABCD would be ABCD
-        RememberJoins = true -- Set this to false to make them join the discord every time they load it up
-    },
-
-    KeySystem = false, -- Set this to true to use our key system
-    KeySettings = {
-        Title = "Untitled",
-        Subtitle = "Key System",
-        Note = "No method of obtaining the key is provided", -- Use this to tell the user how to get a key
-        FileName = "Key", -- It is recommended to use something unique as other scripts using Rayfield may overwrite your key file
-        SaveKey = true, -- The user's key will be saved, but if you change the key, they will be unable to use your script
-        GrabKeyFromSite = false, -- If this is true, set Key below to the RAW site you would like Rayfield to get the key from
-        Key = {"Hello"} -- List of keys that will be accepted by the system, can be RAW file links (pastebin, github etc) or simple strings ("hello","key22")
-    }
-})
-
-local Tab = Window:CreateTab("Main", 4483362458)
-local FarmTab = Window:CreateTab("Farm")
-
-local LocalPlayer = game.Players.LocalPlayer
-local HumanoidRootPart = LocalPlayer.Character:FindFirstChild("HumanoidRootPart", true)
-
-local Things = game.workspace['__THINGS']
-local Breakables = Things.Breakables
-local Orbs = Things.Orbs
-local Lootbags = Things.Lootbags
-local Network = game:GetService("ReplicatedStorage").Network
-
-local currentCoins = {}
-local totalClaimed = 0
-local totalTime = 0
-
--- Setup the global config to store toggle states
 getgenv().config = {
     farm = {
         toggle = false,
-        radius = 10,  -- You can set this to the value you prefer
         singleTarget = false,
-        wait = 0.2,    -- Time between actions (you can modify this as per your requirement)
-        farmPrint = true,
+        farmPrint = false,
+        radius = 70,
+        wait = 0.2
     },
-    orbs = {
-        toggle = false,
-    },
-    lootbags = {
-        toggle = false,
-    },
+    autoLootbag = false,
+    autoOrb = false
 }
 
--- Calculate distance between two objects
+local lx = "n"
+local LocalPlayer = game.Players.LocalPlayer
+local HumanoidRootPart = LocalPlayer.Character:FindFirstChild("HumanoidRootPart", true)
+
+local vim = game:GetService("VirtualInputManager")
+local sqrt = math.sqrt
+local pow = math.pow
+
+local Things = game.workspace['__THINGS']
+local Lootbags = Things.Lootbags
+local Orbs = Things.Orbs
+local ShinyRelics = Things.ShinyRelics
+local Breakables = Things.Breakables
+local Pets = Things.Pets
+local Network = game:GetService("ReplicatedStorage").Network
+local PetInventory = LocalPlayer.PlayerGui.Inventory.Frame.Main.Pets.EquippedPets
+
+getgenv().currentCoins = {}
+getgenv().equippedPets = {}
+getgenv().totalClaimed = 0
+getgenv().totalTime = 0
+
+local function indexPets()
+    table.clear(getgenv().equippedPets)
+    for _, pet in ipairs(Pets:GetChildren()) do
+        if PetInventory:FindFirstChild(pet.Name) then
+            table.insert(getgenv().equippedPets, pet.Name)
+        end
+    end
+    return getgenv().equippedPets
+end
+
 local function calcDistance(obj1, obj2)
     local pPosX, pPosZ = obj1.CFrame.X, obj1.CFrame.Z
     local hPosX, hPosZ = obj2.CFrame.X, obj2.CFrame.Z
 
-    return math.sqrt((pPosX - hPosX)^2 + (pPosZ - hPosZ)^2)
+    return sqrt(pow(pPosX - hPosX, 2) + pow(pPosZ - hPosZ, 2))
 end
 
--- Start the auto farming process for nearest coins
-local function startFarmingCoins()
-    while getgenv().config.farm.toggle do
-        for _, v in ipairs(Breakables:GetChildren()) do
-            if v.Name ~= "Highlight" and v:FindFirstChild("Hitbox", true) then
-                local part = v:FindFirstChild("Hitbox", true)
+local function getCenter()
+    local frame = Instance.new("Frame")
+    frame.Parent = game.CoreGui
+    frame.Name = LocalPlayer.Name
+    frame.AnchorPoint = Vector2.new(0.5, 0.5)
+    frame.Position = UDim2.fromScale(0.5, 0.5)
+    frame.Size = UDim2.fromOffset(10, 10)
+    frame.Visible = false
 
-                if calcDistance(part, HumanoidRootPart) <= getgenv().config.farm.radius then
-                    if getgenv().config.farm.singleTarget then
-                        local tmpName = v.Name
-                        local startTime = os.clock()
+    return { frame.AbsolutePosition.X, frame.AbsolutePosition.Y }
+end
 
-                        repeat
-                            if calcDistance(part, HumanoidRootPart) > getgenv().config.farm.radius then
-                                break
-                            end
-                            task.wait(getgenv().config.farm.wait)
-                            Network.Breakables_PlayerDealDamage:FireServer(v.Name)
-                        until not Breakables:FindFirstChild(v.Name)
+local isFeatureEnabled = false -- Set the initial state of the feature
+local loopHandle -- Variable to hold the loop handle
 
-                        totalClaimed = totalClaimed + 1
-                        totalTime = totalTime + (os.clock() - startTime)
-                        if getgenv().config.farm.farmPrint then
-                            print("Farmed "..tmpName.." in: "..tostring(os.clock() - startTime).." Avg: "..tostring(totalTime/totalClaimed))
-                        end
-                    else
-                        if not table.find(currentCoins, v.Name) then
-                            table.insert(currentCoins, v.Name)
-                            task.spawn(function()
-                                local tmpPart = part
-                                local tmpName = v.Name
-                                local startTime = os.clock()
-                                repeat
-                                    if calcDistance(tmpPart, HumanoidRootPart) > getgenv().config.farm.radius then
-                                        table.remove(currentCoins, table.find(currentCoins, v.Name))
-                                        break
-                                    end
+local function toggleFeature(value)
+    isFeatureEnabled = value -- Update the state of the feature
+    if isFeatureEnabled then
+        local a = game.Players.LocalPlayer.Character.HumanoidRootPart
+        local b = workspace.__THINGS
 
-                                    task.wait(getgenv().config.farm.wait * math.random(1, 2))
-
-                                    Network.Breakables_PlayerDealDamage:FireServer(tmpName)
-                                until not Breakables:FindFirstChild(tmpName)
-
-                                table.remove(currentCoins, table.find(currentCoins, v.Name))
-                                totalClaimed = totalClaimed + 1
-                                totalTime = totalTime + (os.clock() - startTime)
-                                if getgenv().config.farm.farmPrint then
-                                    print("Farmed "..tmpName.." in: "..tostring(os.clock() - startTime).." Avg: "..tostring(totalTime/totalClaimed))
-                                end
-                            end)
-                        end
-                    end
-                end
+        local function get()
+            local cf = a.CFrame
+            for i, v in pairs(b.Orbs:GetChildren()) do
+                v:PivotTo(cf)
             end
         end
-        task.wait() -- Reduce load when idle
+
+        loopHandle = game:GetService("RunService").Heartbeat:Connect(function()
+            if isFeatureEnabled then
+                get()
+            end
+        end)
+    else
+        if loopHandle then
+            loopHandle:Disconnect() -- Stop the loop if the feature is disabled
+            loopHandle = nil
+        end
     end
 end
 
--- Stop the farming process
-local function stopFarmingCoins()
-    getgenv().config.farm.toggle = false
-end
-
--- Start auto collecting gem orbs
-local function startCollectingOrbs()
-    while getgenv().config.orbs.toggle do
-        for _, orb in pairs(Orbs:GetChildren()) do
-            if orb:IsA("MeshPart") then
-                orb.CFrame = CFrame.new(LocalPlayer.Character.HumanoidRootPart.Position)
-            end
-        end
-        task.wait(0.05) -- Speed up the collection process by reducing wait time
-    end
-end
-
--- Stop auto collecting gem orbs
-local function stopCollectingOrbs()
-    getgenv().config.orbs.toggle = false
-end
-
--- Start auto collecting lootbags
-local function startCollectingLootbags()
-    while getgenv().config.lootbags.toggle do
-        for _, lootbag in pairs(Lootbags:GetChildren()) do
-            if lootbag:IsA("MeshPart") then
-                lootbag.CFrame = CFrame.new(LocalPlayer.Character.HumanoidRootPart.Position)
-            end
-        end
-        task.wait(0.05) -- Speed up the collection process by reducing wait time
-    end
-end
-
--- Stop auto collecting lootbags
-local function stopCollectingLootbags()
-    getgenv().config.lootbags.toggle = false
-end
-
--- Create Farm Nearest Coins Toggle
+-- Farm Nearest Coins Toggle
 local farmToggle = FarmTab:CreateToggle({
     Name = "Farm Nearest Coins",
     CurrentValue = false,
     Flag = "toggleFarm",
     Callback = function(value)
         getgenv().config.farm.toggle = value
-        if value then
-            -- Start farming the coins
-            startFarmingCoins()
-        else
-            -- Stop farming the coins
-            stopFarmingCoins()
+        while getgenv().config.farm.toggle and task.wait() do
+            for _, v in ipairs(Breakables:GetChildren()) do
+                if v.Name ~= "Highlight" and v:FindFirstChild("Hitbox", true) then
+                    local part = v:FindFirstChild("Hitbox", true)
+
+                    if calcDistance(part, HumanoidRootPart) <= getgenv().config.farm.radius then
+                        if getgenv().config.farm.singleTarget then
+                            local tmpName = v.Name
+                            local startTime = os.clock()
+
+                            repeat
+                                if calcDistance(part, HumanoidRootPart) > getgenv().config.farm.radius then
+                                    break
+                                end
+                                task.wait(getgenv().config.farm.wait)
+                                Network.Breakables_PlayerDealDamage:FireServer(v.Name)
+                            until not Breakables:FindFirstChild(v.Name)
+
+                            getgenv().totalClaimed = getgenv().totalClaimed + 1
+                            getgenv().totalTime = getgenv().totalTime + (os.clock() - startTime)
+                            if getgenv().config.farm.farmPrint then
+                                print("Farmed "..tmpName.." in: "..tostring(os.clock() - startTime).." Avg: "..tostring(getgenv().totalTime / getgenv().totalClaimed))
+                            end
+                        else
+                            if not table.find(getgenv().currentCoins, v.Name) then
+                                table.insert(getgenv().currentCoins, v.Name)
+                                task.spawn(function()
+                                    local tmpPart = part
+                                    local tmpName = v.Name
+                                    local startTime = os.clock()
+                                    repeat
+                                        if calcDistance(tmpPart, HumanoidRootPart) > getgenv().config.farm.radius then
+                                            table.remove(getgenv().currentCoins, table.find(getgenv().currentCoins, v.Name))
+                                            break
+                                        end
+
+                                        task.wait(getgenv().config.farm.wait * math.random(1, 2))
+
+                                        Network.Breakables_PlayerDealDamage:FireServer(tmpName)
+                                    until not Breakables:FindFirstChild(tmpName)
+
+                                    table.remove(getgenv().currentCoins, table.find(getgenv().currentCoins, v.Name))
+                                    getgenv().totalClaimed = getgenv().totalClaimed + 1
+                                    getgenv().totalTime = getgenv().totalTime + (os.clock() - startTime)
+                                    if getgenv().config.farm.farmPrint then
+                                        print("Farmed "..tmpName.." in: "..tostring(os.clock() - startTime).." Avg: "..tostring(getgenv().totalTime / getgenv().totalClaimed))
+                                    end
+                                end)
+                            end
+                        end
+                    end
+                end
+            end
         end
-    end,
+    end
 })
 
--- Create Auto Collect Gem Orbs Toggle
-local orbsToggle = FarmTab:CreateToggle({
-    Name = "Auto Collect Gem Orbs",
+-- Auto Lootbag Toggle
+local lootbagToggle = FarmTab:CreateToggle({
+    Name = "Auto Collect Lootbags",
+    CurrentValue = false,
+    Flag = "toggleLootbag",
+    Callback = function(value)
+        getgenv().config.autoLootbag = value
+        while getgenv().config.autoLootbag and task.wait(0.1) do
+            for _, lootbag in ipairs(Lootbags:GetChildren()) do
+                if lootbag:IsA("MeshPart") then
+                    lootbag.CFrame = CFrame.new(LocalPlayer.Character.HumanoidRootPart.Position)
+                end
+            end
+        end
+    end
+})
+
+-- Auto Orb Toggle
+local orbToggle = FarmTab:CreateToggle({
+    Name = "Auto Collect Orbs",
     CurrentValue = false,
     Flag = "toggleOrbs",
     Callback = function(value)
-        getgenv().config.orbs.toggle = value
-        if value then
-            -- Start collecting orbs
-            startCollectingOrbs()
-        else
-            -- Stop collecting orbs
-            stopCollectingOrbs()
+        getgenv().config.autoOrb = value
+        while getgenv().config.autoOrb and task.wait(0.1) do
+            for _, orb in ipairs(Orbs:GetChildren()) do
+                if orb:IsA("MeshPart") then
+                    orb.CFrame = CFrame.new(LocalPlayer.Character.HumanoidRootPart.Position)
+                end
+            end
         end
-    end,
-})
-
--- Create Auto Collect Lootbags Toggle
-local lootbagsToggle = FarmTab:CreateToggle({
-    Name = "Auto Collect Lootbags",
-    CurrentValue = false,
-    Flag = "toggleLootbags",
-    Callback = function(value)
-        getgenv().config.lootbags.toggle = value
-        if value then
-            -- Start collecting lootbags
-            startCollectingLootbags()
-        else
-            -- Stop collecting lootbags
-            stopCollectingLootbags()
-        end
-    end,
+    end
 })
