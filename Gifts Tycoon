@@ -203,7 +203,7 @@ local function autoBuyQualityGiftsLoop()
         return
     end
 
-    while autoBuyWorkerSpeedActive do
+    while autoBuyGiftQualityActive do
         local args = {
             [1] = "Gift Quality"
         }
