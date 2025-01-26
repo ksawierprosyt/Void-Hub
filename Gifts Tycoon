@@ -205,7 +205,7 @@ local function autoBuyQualityGiftsLoop()
 
     while autoBuyWorkerSpeedActive do
         local args = {
-            [1] = "Quality Gifts"
+            [1] = "Gift Quality"
         }
 
         -- Fire the RemoteEvent repeatedly while the toggle is on
@@ -216,7 +216,7 @@ local function autoBuyQualityGiftsLoop()
         if not success then
             warn("Error firing RemoteEvent: " .. err)
         else
-            print("Bought Worker Speed upgrade.")
+            print("Bought Quality Gifts upgrade.")
         end
 
         task.wait(1) -- Wait before firing again to avoid spamming too fast
