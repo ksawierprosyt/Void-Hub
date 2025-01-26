@@ -11,26 +11,26 @@ local Window = Rayfield:CreateWindow({
     DisableBuildWarnings = false,
 
     ConfigurationSaving = {
-        Enabled = false,
-        FolderName = nil,
-        FileName = "Big Hub"
+       Enabled = false,
+       FolderName = nil,
+       FileName = "Big Hub"
     },
 
     Discord = {
-        Enabled = true,
-        Invite = "https://discord.gg/36JRDhmT8P",
-        RememberJoins = false
+       Enabled = true,
+       Invite = "https://discord.gg/36JRDhmT8P",
+       RememberJoins = false
     },
 
     KeySystem = false,
     KeySettings = {
-        Title = "Untitled",
-        Subtitle = "Key System",
-        Note = "No method of obtaining the key is provided",
-        FileName = "Key",
-        SaveKey = true,
-        GrabKeyFromSite = false,
-        Key = {"Hello"}
+       Title = "Untitled",
+       Subtitle = "Key System",
+       Note = "No method of obtaining the key is provided",
+       FileName = "Key",
+       SaveKey = true,
+       GrabKeyFromSite = false,
+       Key = {"Hello"}
     }
 })
 
@@ -103,7 +103,7 @@ local function autoBuyLoop()
     end
 end
 
-local function autoBuyWorkerSpeedLoop()
+local function autoGiftBuyLoop()
     local Plots = workspace.Plots
     local player = game:GetService("Players").LocalPlayer
 
@@ -112,64 +112,117 @@ local function autoBuyWorkerSpeedLoop()
         return
     end
 
-    while autoBuyWorkerSpeedActive do
+    while autoGiftBuyActive do
         local Plot = Plots:FindFirstChild("Plot")
         if Plot and Plot:GetAttribute("Owner") == player.UserId then
-            local upgradePanel = Plot:FindFirstChild("Items") and Plot.Items:FindFirstChild("UpgradePanel")
-            if upgradePanel then
-                local surfaceGui = upgradePanel:FindFirstChild("SurfaceGui")
-                if surfaceGui then
-                    local workerSpeedButton = surfaceGui:FindFirstChild("WorkerSpeed") and surfaceGui.WorkerSpeed:FindFirstChild("UpgradeButton")
-                    if workerSpeedButton then
-                        -- Ensure the button has a "Text" property that contains the price
-                        local priceText = workerSpeedButton:FindFirstChild("Text") and workerSpeedButton.Text
-                        if priceText then
-                            local price = tonumber(priceText:match("(%d+)")) -- Extract number from "X$"
-                            if price then
-                                local cash = player:FindFirstChild("leaderstats") and player.leaderstats:FindFirstChild("Cash")
-                                if cash then
-                                    -- Wait until the player has enough cash
-                                    while autoBuyWorkerSpeedActive and cash.Value < price do
-                                        task.wait(1) -- Wait for enough cash
-                                    end
+            local Buttons = Plot:FindFirstChild("Buttons")
+            if Buttons then
+                local lowestGiftCylinder = nil
+                local lowestGiftAmount = math.huge
 
-                                    -- Fire the RemoteEvent to buy the upgrade
-                                    if autoBuyWorkerSpeedActive and cash.Value >= price then
-                                        local args = { [1] = "Worker Speed" }
-                                        local success, err = pcall(function()
-                                            game:GetService("ReplicatedStorage"):WaitForChild("DataFolder"):WaitForChild("Edits"):WaitForChild("RequestUpgrade"):InvokeServer(unpack(args))
-                                        end)
-                                        if success then
-                                            print("Bought Worker Speed upgrade for $" .. price)
-                                        else
-                                            warn("Error firing RemoteEvent: " .. err)
-                                        end
+                -- Find the lowest-priced Gift Cylinder
+                for _, obj in pairs(Buttons:GetChildren()) do
+                    if obj:IsA("MeshPart") and obj.Name == "Cylinder" and obj.Transparency == 0 then
+                        local billboardGui = obj:FindFirstChild("BillboardGui")
+                        if billboardGui then
+                            local priceLabel = billboardGui:FindFirstChild("Price")
+                            if priceLabel and priceLabel:IsA("TextLabel") then
+                                local priceText = priceLabel.Text
+                                local giftAmount = tonumber(priceText:match("(%d+) Gifts"))  -- Look for "X Gifts"
 
-                                        task.wait(1) -- Prevent excessive requests
-                                    end
+                                if giftAmount and giftAmount < lowestGiftAmount then
+                                    lowestGiftAmount = giftAmount
+                                    lowestGiftCylinder = obj
                                 end
-                            else
-                                warn("Unable to extract price from WorkerSpeed button text.")
                             end
-                        else
-                            warn("WorkerSpeed UpgradeButton text not found.")
                         end
-                    else
-                        warn("WorkerSpeed UpgradeButton not found.")
                     end
-                else
-                    warn("SurfaceGui not found.")
                 end
-            else
-                warn("UpgradePanel not found.")
+
+                -- If a valid Cylinder is found
+                if lowestGiftCylinder then
+                    local gifts = player:FindFirstChild("leaderstats") and player.leaderstats:FindFirstChild("Gifts")
+                    if gifts then
+                        while autoGiftBuyActive and gifts.Value < lowestGiftAmount do
+                            task.wait(1) -- Wait until player has enough Gifts
+                        end
+
+                        -- Teleport and buy the button
+                        if autoGiftBuyActive and gifts.Value >= lowestGiftAmount then
+                            local character = player.Character
+                            if character and character:FindFirstChild("HumanoidRootPart") then
+                                character.HumanoidRootPart.CFrame = lowestGiftCylinder.CFrame
+                                print("Teleported to Cylinder: ", lowestGiftAmount, " Gifts")
+
+                                -- Simulate purchase
+                                task.wait(1) -- Give some time for purchase
+                            end
+                        end
+                    end
+                end
             end
-        else
-            warn("Player doesn't own this plot.")
         end
 
         task.wait(1) -- Prevent excessive looping
     end
 end
+
+local function autoBuyWorkerSpeedLoop()
+    local player = game:GetService("Players").LocalPlayer
+
+    if not player then
+        warn("LocalPlayer not found!")
+        return
+    end
+
+    while autoBuyWorkerSpeedActive do
+        local args = {
+            [1] = "Worker Speed"
+        }
+
+        -- Fire the RemoteEvent repeatedly while the toggle is on
+        local success, err = pcall(function()
+            game:GetService("ReplicatedStorage"):WaitForChild("DataFolder"):WaitForChild("Edits"):WaitForChild("RequestUpgrade"):InvokeServer(unpack(args))
+        end)
+
+        if not success then
+            warn("Error firing RemoteEvent: " .. err)
+        else
+            print("Bought Worker Speed upgrade.")
+        end
+
+        task.wait(1) -- Wait before firing again to avoid spamming too fast
+    end
+end
+
+local function autoBuyQualityGiftsLoop()
+    local player = game:GetService("Players").LocalPlayer
+
+    if not player then
+        warn("LocalPlayer not found!")
+        return
+    end
+
+    while autoBuyWorkerSpeedActive do
+        local args = {
+            [1] = "Quality Gifts"
+        }
+
+        -- Fire the RemoteEvent repeatedly while the toggle is on
+        local success, err = pcall(function()
+            game:GetService("ReplicatedStorage"):WaitForChild("DataFolder"):WaitForChild("Edits"):WaitForChild("RequestUpgrade"):InvokeServer(unpack(args))
+        end)
+
+        if not success then
+            warn("Error firing RemoteEvent: " .. err)
+        else
+            print("Bought Worker Speed upgrade.")
+        end
+
+        task.wait(1) -- Wait before firing again to avoid spamming too fast
+    end
+end
+
 
 local AutoBuyToggle = MainTab:CreateToggle({
     Name = "Auto Buy Buttons",
@@ -183,6 +236,18 @@ local AutoBuyToggle = MainTab:CreateToggle({
     end,
 })
 
+local AutoGiftBuyToggle = MainTab:CreateToggle({
+    Name = "Auto Buy Gifts Buttons",
+    CurrentValue = false,
+    Flag = "BuyGifts",
+    Callback = function(Value)
+        autoGiftBuyActive = Value
+        if autoGiftBuyActive then
+            autoGiftBuyLoop()
+        end
+    end,
+})
+
 local AutobuyworkerspeedToggle = MainTab:CreateToggle({
     Name = "Auto Buy Worker Speed",
     CurrentValue = false,
@@ -191,6 +256,18 @@ local AutobuyworkerspeedToggle = MainTab:CreateToggle({
         autoBuyWorkerSpeedActive = Value
         if autoBuyWorkerSpeedActive then
             autoBuyWorkerSpeedLoop()
+        end
+    end,
+})
+
+local AutobuygiftqualityToggle = MainTab:CreateToggle({
+    Name = "Auto Buy Gift Quality",
+    CurrentValue = false,
+    Flag = "buygiftquality",
+    Callback = function(Value)
+        autoBuyGiftQualityActive = Value
+        if autoBuyGiftQualityActive then
+            autoBuyQualityGiftsLoop()
         end
     end,
 })
