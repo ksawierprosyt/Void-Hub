@@ -1,0 +1,75 @@
+-- This script prints the LocalPlayer's UserId and checks plot ownership, then teleports player to the visible Cylinder once
+
+local Plots = workspace.Plots
+local player = game:GetService("Players").LocalPlayer
+local teleported = false  -- Ensure teleport happens only once
+
+if player then
+    print("LocalPlayer UserId:", player.UserId)
+    
+    local Plot = Plots:FindFirstChild("Plot")
+    if Plot and Plot:GetAttribute("Owner") == player.UserId then
+        print("Player owns the plot.")
+        
+        -- Find the visible Cylinder inside Buttons folder
+        local Buttons = Plot:FindFirstChild("Buttons")
+        if Buttons then
+            local firstCylinder, secondCylinder = nil, nil
+            for _, obj in pairs(Buttons:GetChildren()) do
+                if obj:IsA("MeshPart") and obj.Name == "Cylinder" and obj.Transparency == 0 then
+                    if not firstCylinder then
+                        firstCylinder = obj
+                    else
+                        secondCylinder = obj
+                        break
+                    end
+                end
+            end
+            
+            -- Teleport player to the first visible Cylinder
+            if firstCylinder and not teleported then
+                local character = player.Character
+                if character and character:FindFirstChild("HumanoidRootPart") then
+                    character.HumanoidRootPart.CFrame = firstCylinder.CFrame
+                    print("Teleported player to first visible Cylinder.")
+                    teleported = true
+                end
+            end
+            
+            -- Check the second Cylinder for price and teleport if player has enough Cash
+            if secondCylinder then
+                local billboardGui = secondCylinder:FindFirstChild("BillboardGui")
+                if billboardGui then
+                    local priceLabel = billboardGui:FindFirstChild("Price")
+                    if priceLabel and priceLabel:IsA("TextLabel") then
+                        local price = tonumber(priceLabel.Text:match("%d+"))
+                        if price then
+                            local cash = player:FindFirstChild("leaderstats") and player.leaderstats:FindFirstChild("Cash")
+                            if cash and cash.Value >= price then
+                                local character = player.Character
+                                if character and character:FindFirstChild("HumanoidRootPart") then
+                                    character.HumanoidRootPart.CFrame = secondCylinder.CFrame
+                                    print("Teleported player to second Cylinder with sufficient cash.")
+                                end
+                            else
+                                print("Waiting for player to have enough Cash.")
+                                while cash and cash.Value < price do
+                                    task.wait(1)
+                                end
+                                local character = player.Character
+                                if character and character:FindFirstChild("HumanoidRootPart") then
+                                    character.HumanoidRootPart.CFrame = secondCylinder.CFrame
+                                    print("Teleported player after acquiring sufficient cash.")
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    else
+        print("Player does not own the plot.")
+    end
+else
+    warn("LocalPlayer not found!")
+end
