@@ -1,3 +1,45 @@
+-- Make sure you have Rayfield loaded first
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+-- Create Rayfield Window
+local Window = Rayfield:CreateWindow({
+    Name = game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name,
+    Icon = 0,
+    LoadingTitle = game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name,
+    LoadingSubtitle = "by Void Hub",
+    Theme = "Default",
+
+    DisableRayfieldPrompts = false,
+    DisableBuildWarnings = false,
+
+    ConfigurationSaving = {
+        Enabled = false,
+        FolderName = nil,
+        FileName = "Big Hub"
+    },
+
+    Discord = {
+        Enabled = true,
+        Invite = "https://discord.gg/36JRDhmT8P",
+        RememberJoins = false
+    },
+
+    KeySystem = false,
+    KeySettings = {
+        Title = "Untitled",
+        Subtitle = "Key System",
+        Note = "No method of obtaining the key is provided",
+        FileName = "Key",
+        SaveKey = true,
+        GrabKeyFromSite = false,
+        Key = {"Hello"}
+    }
+})
+
+local InfoTab = Window:CreateTab("Info")  -- Info Tab
+local FarmTab = Window:CreateTab("Farm")  -- Farm Tab
+
+-- Global Configuration Setup
 getgenv().config = {
     farm = {
         toggle = false,
@@ -61,34 +103,7 @@ local function getCenter()
     return { frame.AbsolutePosition.X, frame.AbsolutePosition.Y }
 end
 
-local isFeatureEnabled = false -- Set the initial state of the feature
-local loopHandle -- Variable to hold the loop handle
-
-local function toggleFeature(value)
-    isFeatureEnabled = value -- Update the state of the feature
-    if isFeatureEnabled then
-        local a = game.Players.LocalPlayer.Character.HumanoidRootPart
-        local b = workspace.__THINGS
-
-        local function get()
-            local cf = a.CFrame
-            for i, v in pairs(b.Orbs:GetChildren()) do
-                v:PivotTo(cf)
-            end
-        end
-
-        loopHandle = game:GetService("RunService").Heartbeat:Connect(function()
-            if isFeatureEnabled then
-                get()
-            end
-        end)
-    else
-        if loopHandle then
-            loopHandle:Disconnect() -- Stop the loop if the feature is disabled
-            loopHandle = nil
-        end
-    end
-end
+-- Create Rayfield UI toggles
 
 -- Farm Nearest Coins Toggle
 local farmToggle = FarmTab:CreateToggle({
