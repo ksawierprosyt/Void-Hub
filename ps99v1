@@ -193,3 +193,58 @@ local orbToggle = FarmTab:CreateToggle({
         end
     end
 })
+
+-- Dropdown for selecting fruit
+local fruitDropdown = FarmTab:CreateDropdown({
+    Name = "Pick Fruit",
+    Options = {"Rainbow", "Apple", "Banana", "Orange", "Pineapple", "Watermelon"},
+    CurrentOption = {"Apple"},  -- Default fruit (Apple) selected
+    MultipleOptions = false,
+    Flag = "fruitdropdown", -- A flag is the identifier for the configuration file
+    Callback = function(Options)
+        -- This will be triggered whenever the dropdown value is changed.
+        local selectedFruit = Options[1]
+        print("Selected Fruit: " .. selectedFruit)
+        
+        -- Find the UID of the selected fruit
+        local inv = require(game.ReplicatedStorage.Library.Client.Save).Get().Inventory
+        local fruits = inv.Fruit
+        
+        -- Store the selected fruit's UID globally for use in other parts of the script
+        selectedFruitUID = nil
+        for uid, fruit in pairs(fruits) do
+            if fruit.id == selectedFruit then
+                selectedFruitUID = uid
+                break
+            end
+        end
+    end,
+})
+
+-- Auto Eat Fruit Toggle
+local AutoEatFruitToggle = FarmTab:CreateToggle({
+    Name = "Auto Eat Fruit",
+    CurrentValue = false,
+    Flag = "EatFruit", -- A flag for the configuration file
+    Callback = function(Value)
+        -- When the toggle is pressed, handle the auto-eat functionality
+        if Value then
+            print("Auto Eat Fruit is enabled.")
+            
+            -- Ensure that a fruit is selected and we have the UID for it
+            if selectedFruitUID then
+                local args = {
+                    [1] = selectedFruitUID,
+                    [2] = 1
+                }
+                
+                -- Fire the event to consume the fruit
+                game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Fruits: Consume"):FireServer(unpack(args))
+            else
+                print("No fruit selected!")
+            end
+        else
+            print("Auto Eat Fruit is disabled.")
+        end
+    end,
+})
