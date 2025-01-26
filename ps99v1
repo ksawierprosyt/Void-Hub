@@ -42,6 +42,8 @@ local HumanoidRootPart = LocalPlayer.Character:FindFirstChild("HumanoidRootPart"
 
 local Things = game.workspace['__THINGS']
 local Breakables = Things.Breakables
+local Orbs = Things.Orbs
+local Lootbags = Things.Lootbags
 local Network = game:GetService("ReplicatedStorage").Network
 
 local currentCoins = {}
@@ -120,7 +122,41 @@ local function stopFarmingCoins()
     getgenv().config.farm.toggle = false
 end
 
--- Farm Toggle for Nearest Coins
+-- Start auto collecting gem orbs
+local function startCollectingOrbs()
+    while getgenv().config.orbs.toggle do
+        for _, orb in pairs(Orbs:GetChildren()) do
+            if orb:IsA("MeshPart") then
+                orb.CFrame = CFrame.new(LocalPlayer.Character.HumanoidRootPart.Position)
+            end
+        end
+        task.wait(0.05) -- Speed up the collection process by reducing wait time
+    end
+end
+
+-- Stop auto collecting gem orbs
+local function stopCollectingOrbs()
+    getgenv().config.orbs.toggle = false
+end
+
+-- Start auto collecting lootbags
+local function startCollectingLootbags()
+    while getgenv().config.lootbags.toggle do
+        for _, lootbag in pairs(Lootbags:GetChildren()) do
+            if lootbag:IsA("MeshPart") then
+                lootbag.CFrame = CFrame.new(LocalPlayer.Character.HumanoidRootPart.Position)
+            end
+        end
+        task.wait(0.05) -- Speed up the collection process by reducing wait time
+    end
+end
+
+-- Stop auto collecting lootbags
+local function stopCollectingLootbags()
+    getgenv().config.lootbags.toggle = false
+end
+
+-- Create Farm Nearest Coins Toggle
 local farmToggle = FarmTab:CreateToggle({
     Name = "Farm Nearest Coins",
     CurrentValue = false,
@@ -133,6 +169,40 @@ local farmToggle = FarmTab:CreateToggle({
         else
             -- Stop farming the coins
             stopFarmingCoins()
+        end
+    end,
+})
+
+-- Create Auto Collect Gem Orbs Toggle
+local orbsToggle = FarmTab:CreateToggle({
+    Name = "Auto Collect Gem Orbs",
+    CurrentValue = false,
+    Flag = "toggleOrbs",
+    Callback = function(value)
+        getgenv().config.orbs.toggle = value
+        if value then
+            -- Start collecting orbs
+            startCollectingOrbs()
+        else
+            -- Stop collecting orbs
+            stopCollectingOrbs()
+        end
+    end,
+})
+
+-- Create Auto Collect Lootbags Toggle
+local lootbagsToggle = FarmTab:CreateToggle({
+    Name = "Auto Collect Lootbags",
+    CurrentValue = false,
+    Flag = "toggleLootbags",
+    Callback = function(value)
+        getgenv().config.lootbags.toggle = value
+        if value then
+            -- Start collecting lootbags
+            startCollectingLootbags()
+        else
+            -- Stop collecting lootbags
+            stopCollectingLootbags()
         end
     end,
 })
