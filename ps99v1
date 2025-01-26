@@ -50,6 +50,23 @@ local currentCoins = {}
 local totalClaimed = 0
 local totalTime = 0
 
+-- Setup the global config to store toggle states
+getgenv().config = {
+    farm = {
+        toggle = false,
+        radius = 10,  -- You can set this to the value you prefer
+        singleTarget = false,
+        wait = 0.2,    -- Time between actions (you can modify this as per your requirement)
+        farmPrint = true,
+    },
+    orbs = {
+        toggle = false,
+    },
+    lootbags = {
+        toggle = false,
+    },
+}
+
 -- Calculate distance between two objects
 local function calcDistance(obj1, obj2)
     local pPosX, pPosZ = obj1.CFrame.X, obj1.CFrame.Z
