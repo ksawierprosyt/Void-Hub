@@ -14,14 +14,26 @@ if player then
         -- Find the visible Cylinder inside Buttons folder
         local Buttons = Plot:FindFirstChild("Buttons")
         if Buttons then
-            local firstCylinder, secondCylinder = nil, nil
+            local firstCylinder = nil
+            local lowestPriceCylinder = nil
+            local lowestPrice = math.huge
+            
             for _, obj in pairs(Buttons:GetChildren()) do
                 if obj:IsA("MeshPart") and obj.Name == "Cylinder" and obj.Transparency == 0 then
                     if not firstCylinder then
                         firstCylinder = obj
-                    else
-                        secondCylinder = obj
-                        break
+                    end
+                    
+                    local billboardGui = obj:FindFirstChild("BillboardGui")
+                    if billboardGui then
+                        local priceLabel = billboardGui:FindFirstChild("Price")
+                        if priceLabel and priceLabel:IsA("TextLabel") then
+                            local price = tonumber(priceLabel.Text:match("%d+"))
+                            if price and price < lowestPrice then
+                                lowestPrice = price
+                                lowestPriceCylinder = obj
+                            end
+                        end
                     end
                 end
             end
@@ -36,33 +48,24 @@ if player then
                 end
             end
             
-            -- Check the second Cylinder for price and teleport if player has enough Cash
-            if secondCylinder then
-                local billboardGui = secondCylinder:FindFirstChild("BillboardGui")
-                if billboardGui then
-                    local priceLabel = billboardGui:FindFirstChild("Price")
-                    if priceLabel and priceLabel:IsA("TextLabel") then
-                        local price = tonumber(priceLabel.Text:match("%d+"))
-                        if price then
-                            local cash = player:FindFirstChild("leaderstats") and player.leaderstats:FindFirstChild("Cash")
-                            if cash and cash.Value >= price then
-                                local character = player.Character
-                                if character and character:FindFirstChild("HumanoidRootPart") then
-                                    character.HumanoidRootPart.CFrame = secondCylinder.CFrame
-                                    print("Teleported player to second Cylinder with sufficient cash.")
-                                end
-                            else
-                                print("Waiting for player to have enough Cash.")
-                                while cash and cash.Value < price do
-                                    task.wait(1)
-                                end
-                                local character = player.Character
-                                if character and character:FindFirstChild("HumanoidRootPart") then
-                                    character.HumanoidRootPart.CFrame = secondCylinder.CFrame
-                                    print("Teleported player after acquiring sufficient cash.")
-                                end
-                            end
-                        end
+            -- Teleport player to the lowest price Cylinder if they have enough Cash
+            if lowestPriceCylinder then
+                local cash = player:FindFirstChild("leaderstats") and player.leaderstats:FindFirstChild("Cash")
+                if cash and cash.Value >= lowestPrice then
+                    local character = player.Character
+                    if character and character:FindFirstChild("HumanoidRootPart") then
+                        character.HumanoidRootPart.CFrame = lowestPriceCylinder.CFrame
+                        print("Teleported player to the lowest price Cylinder with sufficient cash.")
+                    end
+                else
+                    print("Waiting for player to have enough Cash.")
+                    while cash and cash.Value < lowestPrice do
+                        task.wait(1)
+                    end
+                    local character = player.Character
+                    if character and character:FindFirstChild("HumanoidRootPart") then
+                        character.HumanoidRootPart.CFrame = lowestPriceCylinder.CFrame
+                        print("Teleported player after acquiring sufficient cash.")
                     end
                 end
             end
