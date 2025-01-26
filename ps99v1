@@ -35,6 +35,7 @@ local Window = Rayfield:CreateWindow({
 })
 
 local Tab = Window:CreateTab("Main", 4483362458)
+local FarmTab = Window:CreateTab("Farm")
 
 -- Variables to control the automation
 local autoPlantRunning = false
@@ -217,6 +218,116 @@ local largeGiftToggle = Tab:CreateToggle({
         else
             -- Stop the auto large gift process
             autoLargeGiftRunning = false
+        end
+    end,
+})
+
+getgenv().config = {
+    farm = {
+        toggle = false,
+        singleTarget = false,
+        farmPrint = false,
+        radius = 70,
+        wait = 0.2
+    }
+}
+
+local LocalPlayer = game.Players.LocalPlayer
+local HumanoidRootPart = LocalPlayer.Character:FindFirstChild("HumanoidRootPart", true)
+
+local Things = game.workspace['__THINGS']
+local Breakables = Things.Breakables
+local Network = game:GetService("ReplicatedStorage").Network
+
+local currentCoins = {}
+local totalClaimed = 0
+local totalTime = 0
+
+-- Calculate distance between two objects
+local function calcDistance(obj1, obj2)
+    local pPosX, pPosZ = obj1.CFrame.X, obj1.CFrame.Z
+    local hPosX, hPosZ = obj2.CFrame.X, obj2.CFrame.Z
+
+    return math.sqrt((pPosX - hPosX)^2 + (pPosZ - hPosZ)^2)
+end
+
+-- Start the auto farming process for nearest coins
+local function startFarmingCoins()
+    while getgenv().config.farm.toggle do
+        for _, v in ipairs(Breakables:GetChildren()) do
+            if v.Name ~= "Highlight" and v:FindFirstChild("Hitbox", true) then
+                local part = v:FindFirstChild("Hitbox", true)
+
+                if calcDistance(part, HumanoidRootPart) <= getgenv().config.farm.radius then
+                    if getgenv().config.farm.singleTarget then
+                        local tmpName = v.Name
+                        local startTime = os.clock()
+
+                        repeat
+                            if calcDistance(part, HumanoidRootPart) > getgenv().config.farm.radius then
+                                break
+                            end
+                            task.wait(getgenv().config.farm.wait)
+                            Network.Breakables_PlayerDealDamage:FireServer(v.Name)
+                        until not Breakables:FindFirstChild(v.Name)
+
+                        totalClaimed = totalClaimed + 1
+                        totalTime = totalTime + (os.clock() - startTime)
+                        if getgenv().config.farm.farmPrint then
+                            print("Farmed "..tmpName.." in: "..tostring(os.clock() - startTime).." Avg: "..tostring(totalTime/totalClaimed))
+                        end
+                    else
+                        if not table.find(currentCoins, v.Name) then
+                            table.insert(currentCoins, v.Name)
+                            task.spawn(function()
+                                local tmpPart = part
+                                local tmpName = v.Name
+                                local startTime = os.clock()
+                                repeat
+                                    if calcDistance(tmpPart, HumanoidRootPart) > getgenv().config.farm.radius then
+                                        table.remove(currentCoins, table.find(currentCoins, v.Name))
+                                        break
+                                    end
+
+                                    task.wait(getgenv().config.farm.wait * math.random(1, 2))
+
+                                    Network.Breakables_PlayerDealDamage:FireServer(tmpName)
+                                until not Breakables:FindFirstChild(tmpName)
+
+                                table.remove(currentCoins, table.find(currentCoins, v.Name))
+                                totalClaimed = totalClaimed + 1
+                                totalTime = totalTime + (os.clock() - startTime)
+                                if getgenv().config.farm.farmPrint then
+                                    print("Farmed "..tmpName.." in: "..tostring(os.clock() - startTime).." Avg: "..tostring(totalTime/totalClaimed))
+                                end
+                            end)
+                        end
+                    end
+                end
+            end
+        end
+        task.wait() -- Reduce load when idle
+    end
+end
+
+-- Stop the farming process
+local function stopFarmingCoins()
+    getgenv().config.farm.toggle = false
+end
+
+-- Farm Toggle for Nearest Coins
+local farmToggle = FarmTab:CreateToggle({
+    Name = "Farm Nearest Coins",
+    CurrentValue = false,
+    Flag = "toggleFarm",
+    Callback = function(value)
+        getgenv().config.farm.toggle = value
+        if value then
+            -- Start farming the coins
+            startFarmingCoins()
+        else
+            -- Stop farming the coins
+            stopFarmingCoins()
         end
     end,
 })
