@@ -194,6 +194,8 @@ local orbToggle = FarmTab:CreateToggle({
     end
 })
 
+local selectedFruitUID = nil
+
 -- Dropdown for selecting fruit
 local fruitDropdown = FarmTab:CreateDropdown({
     Name = "Pick Fruit",
@@ -233,13 +235,29 @@ local AutoEatFruitToggle = FarmTab:CreateToggle({
             
             -- Ensure that a fruit is selected and we have the UID for it
             if selectedFruitUID then
-                local args = {
-                    [1] = selectedFruitUID,
-                    [2] = 1
-                }
-                
-                -- Fire the event to consume the fruit
-                game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Fruits: Consume"):FireServer(unpack(args))
+                -- Repeatedly fire the RemoteEvent to consume the fruit while the toggle is enabled
+                local consumeInterval = 1 -- Interval in seconds (adjust as needed)
+                local repeatEat = true
+
+                -- Keep firing the event while the toggle is on
+                local connection
+                connection = game:GetService("RunService").Heartbeat:Connect(function()
+                    if not AutoEatFruitToggle.CurrentValue then
+                        connection:Disconnect()
+                        return
+                    end
+
+                    -- Fire the event to consume the fruit
+                    local args = {
+                        [1] = selectedFruitUID,
+                        [2] = 1
+                    }
+                    game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Fruits: Consume"):FireServer(unpack(args))
+                    print("Consuming fruit: " .. selectedFruitUID)
+                    
+                    -- Wait for the interval before firing again
+                    wait(consumeInterval)
+                end)
             else
                 print("No fruit selected!")
             end
